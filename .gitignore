@@ -1,0 +1,7 @@
+sbs.db
+cron.log
+.venv/
+__pycache__/
+*.pyc
+uv.lock
+.env

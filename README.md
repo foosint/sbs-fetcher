@@ -1,0 +1,1 @@
+9,19,29,39,49,59 * * * * cd /PATH_TO/sbs-fetcher && uv run fetch_and_push.py >> cron.log 2>&1
