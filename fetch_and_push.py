@@ -41,7 +41,7 @@ GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH",  "main")
 GITHUB_DB_PATH= os.environ.get("GITHUB_DB_PATH", "data/sbs.db")
 GIT_NAME      = os.environ.get("GIT_USER_NAME",  "sbs-fetcher")
 GIT_EMAIL     = os.environ.get("GIT_USER_EMAIL", "")
-SIGN_KEY_PATH = os.environ.get("GIT_SIGN_KEY",   "")  # path to SSH private key file
+# Note: GIT_SIGN_KEY is not used — see comment in push_db_to_github()
 
 KYIV_TZ = zoneinfo.ZoneInfo("Europe/Kyiv")
 
@@ -251,38 +251,11 @@ def push_db_to_github() -> None:
     if file_sha:
         payload["sha"] = file_sha
 
-    # SSH signing via GitHub API
-    if SIGN_KEY_PATH:
-        import subprocess
-        import tempfile
-
-        key_path = Path(SIGN_KEY_PATH).expanduser()
-        if not key_path.exists():
-            raise FileNotFoundError(f"SSH key file not found: {key_path}")
-
-        # ssh-keygen -Y sign requires the message in a temp file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".msg") as tmp:
-            tmp.write(payload["message"].encode())
-            tmp_path = tmp.name
-
-        try:
-            result = subprocess.run(
-                [
-                    "ssh-keygen", "-Y", "sign",
-                    "-f", str(key_path),
-                    "-n", "git",      # namespace must be "git" for GitHub
-                    tmp_path,
-                ],
-                capture_output=True, text=True,
-            )
-            if result.returncode != 0:
-                raise RuntimeError(f"SSH signing failed: {result.stderr}")
-
-            sig_path = tmp_path + ".sig"
-            payload["signature"] = Path(sig_path).read_text()
-        finally:
-            Path(tmp_path).unlink(missing_ok=True)
-            Path(tmp_path + ".sig").unlink(missing_ok=True)
+    # Note: the GitHub Contents API does not support SSH commit signing —
+    # the "signature" field only accepts GPG armored signatures, and SSH-format
+    # signing is only honoured by git itself (not the REST API).
+    # Commits pushed via this API will show as "Unverified" on GitHub.
+    # This is a GitHub API limitation, not a bug in this script.
 
     r = requests.put(api_url, headers=gh_headers, json=payload, timeout=30)
     r.raise_for_status()
@@ -317,6 +290,9 @@ def main() -> None:
         except Exception as e:
             print(f"  ⚠️  Skipping {month}: {e}")
 
+    # Checkpoint WAL and close — ensures all data is flushed to the DB file
+    # before we read the bytes and push to GitHub
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     conn.close()
 
     # Push to GitHub
