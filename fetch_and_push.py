@@ -48,6 +48,7 @@ KYIV_TZ = zoneinfo.ZoneInfo("Europe/Kyiv")
 # ─── SBS API endpoints ────────────────────────────────────────────────────────
 
 DAILY_URL = "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68fa98652f31834f2e051459"
+YESTERDAY_URL = "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68b4852e792cdf918400daf1"
 
 MONTHLY_URLS: dict[str, str] = {
     "2025-06": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68e4e5d484f8ca462d9a7c77",
@@ -274,6 +275,14 @@ def main() -> None:
 
     # Daily
     print("Fetching daily...")
+    p = parse_response(fetch_json(DAILY_URL))
+    kyiv_dt   = to_kyiv(p["data_collected_at"])
+    p["date"] = kyiv_dt.strftime("%Y-%m-%d")
+    p["hour"] = kyiv_dt.hour
+    upsert_daily(conn, p)
+
+    # Yesterday
+    print("Fetching yesterday...")
     p = parse_response(fetch_json(DAILY_URL))
     kyiv_dt   = to_kyiv(p["data_collected_at"])
     p["date"] = kyiv_dt.strftime("%Y-%m-%d")
