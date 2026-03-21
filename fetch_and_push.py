@@ -287,7 +287,7 @@ def main() -> None:
     # Yesterday (add the adjusted value to the last hour of the previous day)
     print("Fetching yesterday...")
     p = parse_response(fetch_json(YESTERDAY_URL))
-    kyiv_dt   = to_kyiv(p["start_date"])
+    kyiv_dt = datetime.fromisoformat(p["start_date"])
     p["date"] = kyiv_dt.strftime("%Y-%m-%d")
     p["hour"] = 23
     upsert_daily(conn, p)
