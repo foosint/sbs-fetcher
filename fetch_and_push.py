@@ -154,6 +154,7 @@ def parse_response(raw: dict) -> dict:
     }
     return {
         "data_collected_at":          data.get("dataCollectedAt"),
+        "end_date":          data.get("endDate"),
         "last_updated":               data.get("lastUpdated"),
         "personnel_killed":           personnel.get("killed"),
         "personnel_wounded":          personnel.get("wounded"),
@@ -281,10 +282,11 @@ def main() -> None:
     p["hour"] = kyiv_dt.hour
     upsert_daily(conn, p)
 
-    # Yesterday
+    # Yesterday (add the adjusted value to the last hour of the previous day)
     print("Fetching yesterday...")
     p = parse_response(fetch_json(YESTERDAY_URL))
-    kyiv_dt   = to_kyiv(p["data_collected_at"])
+    kyiv_dt   = to_kyiv(p["end_date"])
+    del p["end_date"] # remove field
     p["date"] = kyiv_dt.strftime("%Y-%m-%d")
     p["hour"] = kyiv_dt.hour
     upsert_daily(conn, p)
