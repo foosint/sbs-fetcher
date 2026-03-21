@@ -283,7 +283,7 @@ def main() -> None:
 
     # Yesterday
     print("Fetching yesterday...")
-    p = parse_response(fetch_json(DAILY_URL))
+    p = parse_response(fetch_json(YESTERDAY_URL))
     kyiv_dt   = to_kyiv(p["data_collected_at"])
     p["date"] = kyiv_dt.strftime("%Y-%m-%d")
     p["hour"] = kyiv_dt.hour
