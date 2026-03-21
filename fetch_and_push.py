@@ -154,7 +154,7 @@ def parse_response(raw: dict) -> dict:
     }
     return {
         "data_collected_at":          data.get("dataCollectedAt"),
-        "end_date":          data.get("endDate"),
+        "start_date":          data.get("startDate"),
         "last_updated":               data.get("lastUpdated"),
         "personnel_killed":           personnel.get("killed"),
         "personnel_wounded":          personnel.get("wounded"),
@@ -195,12 +195,14 @@ def _upsert(conn: sqlite3.Connection, table: str, pk_cols: list[str], data: dict
 
 def upsert_daily(conn: sqlite3.Connection, data: dict) -> None:
     date, hour = data["date"], data["hour"]
+    del data["start_date"] # remove field
     _upsert(conn, "daily_stats", ["date", "hour"], data)
     print(f"  ✅ daily_stats:   {date} hour {hour:02d}")
 
 
 def upsert_monthly(conn: sqlite3.Connection, data: dict) -> None:
     date = data["date"]
+    del data["start_date"] # remove field
     _upsert(conn, "monthly_stats", ["date"], data)
     print(f"  ✅ monthly_stats: {date}")
 
@@ -278,7 +280,6 @@ def main() -> None:
     print("Fetching daily...")
     p = parse_response(fetch_json(DAILY_URL))
     kyiv_dt   = to_kyiv(p["data_collected_at"])
-    del p["end_date"] # remove field
     p["date"] = kyiv_dt.strftime("%Y-%m-%d")
     p["hour"] = kyiv_dt.hour
     upsert_daily(conn, p)
@@ -286,10 +287,9 @@ def main() -> None:
     # Yesterday (add the adjusted value to the last hour of the previous day)
     print("Fetching yesterday...")
     p = parse_response(fetch_json(YESTERDAY_URL))
-    kyiv_dt   = to_kyiv(p["end_date"])
-    del p["end_date"] # remove field
+    kyiv_dt   = to_kyiv(p["start_date"])
     p["date"] = kyiv_dt.strftime("%Y-%m-%d")
-    p["hour"] = kyiv_dt.hour
+    p["hour"] = 23
     upsert_daily(conn, p)
 
     # Monthly
@@ -297,7 +297,6 @@ def main() -> None:
         print(f"Fetching monthly {month}...")
         try:
             pm = parse_response(fetch_json(url))
-            del p["end_date"] # remove field
             pm["date"] = f"{month}-01"
             upsert_monthly(conn, pm)
         except Exception as e:
