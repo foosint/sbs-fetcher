@@ -297,6 +297,7 @@ def main() -> None:
         print(f"Fetching monthly {month}...")
         try:
             pm = parse_response(fetch_json(url))
+            del p["end_date"] # remove field
             pm["date"] = f"{month}-01"
             upsert_monthly(conn, pm)
         except Exception as e:
