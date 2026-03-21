@@ -278,6 +278,7 @@ def main() -> None:
     print("Fetching daily...")
     p = parse_response(fetch_json(DAILY_URL))
     kyiv_dt   = to_kyiv(p["data_collected_at"])
+    del p["end_date"] # remove field
     p["date"] = kyiv_dt.strftime("%Y-%m-%d")
     p["hour"] = kyiv_dt.hour
     upsert_daily(conn, p)
