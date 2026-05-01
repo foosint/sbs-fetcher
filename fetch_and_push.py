@@ -18,9 +18,10 @@ import os
 import sqlite3
 import time
 import zoneinfo
-import requests
 from datetime import datetime, timezone
 from pathlib import Path
+
+import requests
 
 # ─── Load .env ────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,8 @@ MONTHLY_URLS: dict[str, str] = {
     "2026-01": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69559d35869d2691543f313f",
     "2026-02": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/697e7bbb1ae0eb20ad9dbf56",
     "2026-03": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69a365b5e9679075a2e69d57",
+    "2026-04": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69cc3630d5f5789a478b2f7b",
+    "2026-05": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69f3c332bd3ea11e924505ca",
 }
 
 SBS_HEADERS = {
