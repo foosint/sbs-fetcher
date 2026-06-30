@@ -65,6 +65,7 @@ MONTHLY_URLS: dict[str, str] = {
     "2026-04": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69cc3630d5f5789a478b2f7b",
     "2026-05": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69f3c332bd3ea11e924505ca",
     "2026-06": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68e4e5d484f8ca462d9a7c77",
+    "2026-07": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68e4e67684f8ca462d9a80db",
 }
 
 SBS_HEADERS = {
