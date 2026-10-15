@@ -61,12 +61,14 @@ MONTHLY_URLS: dict[str, str] = {
     #"2025-12": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/692cbeb9145504ee2b0171e5",
     #"2026-01": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69559d35869d2691543f313f",
     #"2026-02": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/697e7bbb1ae0eb20ad9dbf56",
-    "2026-03": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69a365b5e9679075a2e69d57",
-    "2026-04": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69cc3630d5f5789a478b2f7b",
+    #"2026-03": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69a365b5e9679075a2e69d57",
+    #"2026-04": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69cc3630d5f5789a478b2f7b",
     "2026-05": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/69f3c332bd3ea11e924505ca",
     "2026-06": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68e4e5d484f8ca462d9a7c77",
     "2026-07": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68e4e67684f8ca462d9a80db",
     "2026-08": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68b47e50792cdf918400b06c",
+    "2026-09": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68b1c0f79d5ff32bdf80e705",
+    "2026-10": "https://sbs-group.army/api/public/statistics/68b0c85589944c4bfb2a5edc/68dd1906de22367a4e908027",
 }
 
 SBS_HEADERS = {
@@ -93,6 +95,7 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             personnel_killed INTEGER, personnel_wounded INTEGER,
             total_targets_hit INTEGER, total_targets_destroyed INTEGER,
             total_personnel_casualties INTEGER,
+            flights_strike INTEGER, flights_recon INTEGER,
             PRIMARY KEY (date, hour)
         )
     """)
@@ -103,22 +106,28 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             personnel_killed INTEGER, personnel_wounded INTEGER,
             total_targets_hit INTEGER, total_targets_destroyed INTEGER,
             total_personnel_casualties INTEGER,
+            flights_strike INTEGER, flights_recon INTEGER,
             PRIMARY KEY (date)
         )
     """)
     conn.commit()
+    # Migrate existing DBs created before the flights columns were added
+    for table in ("daily_stats", "monthly_stats"):
+        add_missing_columns(conn, table, ["flights_strike", "flights_recon"])
 
 
-def ensure_columns(conn: sqlite3.Connection, table: str, tids: list[int]) -> None:
+def add_missing_columns(conn: sqlite3.Connection, table: str, cols: list[str]) -> None:
     cur = conn.cursor()
     cur.execute(f"PRAGMA table_info({table})")
     existing = {row[1] for row in cur.fetchall()}
-    for tid in tids:
-        for prefix in ("hit", "destroyed"):
-            col = f"{prefix}_{tid}"
-            if col not in existing:
-                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} INTEGER")
+    for col in cols:
+        if col not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} INTEGER")
     conn.commit()
+
+
+def ensure_columns(conn: sqlite3.Connection, table: str, tids: list[int]) -> None:
+    add_missing_columns(conn, table, [f"{prefix}_{tid}" for tid in tids for prefix in ("hit", "destroyed")])
 
 # ─── SBS HTTP fetch with retries ──────────────────────────────────────────────
 
@@ -153,6 +162,7 @@ def parse_response(raw: dict) -> dict:
     if not data:
         raise ValueError("API response missing 'data' field")
     personnel = data.get("personnel", {})
+    flights = data.get("flights") or {}
     targets = {
         t["targetClassId"]: {"hit": t.get("hit"), "destroyed": t.get("destroyed")}
         for t in data.get("targetsByType", [])
@@ -167,6 +177,8 @@ def parse_response(raw: dict) -> dict:
         "total_targets_hit":          data.get("totalTargetsHit"),
         "total_targets_destroyed":    data.get("totalTargetsDestroyed"),
         "total_personnel_casualties": data.get("totalPersonnelCasualties"),
+        "flights_strike":             flights.get("strike"),
+        "flights_recon":              flights.get("recon"),
         "targets": targets,
     }
 
